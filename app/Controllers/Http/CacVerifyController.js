@@ -33,7 +33,7 @@ class CacVerifyController {
             return response.status(200).json({status: true, verifyStatus, message: 'verified' })
          }
      
-         return response.status(401).json({status: true, verifyStatus, message: 'Not Verified' })
+         return response.status(400).json({status: true, verifyStatus, message: 'Not Verified' })
     }
 
     async verify(cacNumber) {
