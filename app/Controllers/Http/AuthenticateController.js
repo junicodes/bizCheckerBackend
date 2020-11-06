@@ -1,7 +1,8 @@
 'use strict'
 
 const User = use('App/Models/User');
-const UserController = use('App/Controllers/Http/User/UserController')
+const UserController = use('App/Controllers/Http/UserController')
+const CacVerifyController = use('App/Controllers/Http/CacVerifyController')
 const dayjs = use('dayjs')
 const Hash = use('Hash')
 const Env = use('Env')
@@ -12,34 +13,68 @@ class AuthController {
         this.cacCodeBreakOut = 0; this.tinCodeBreakOut = 0;
     }
 
-    async makeUserApp({request, response}) {
-        const password  =  await this.passwordGenerator(8)//Genrated a ramdom password for user 
-        const result = await this.register(request.post(), password)
-        return response.status(result.status_code).json(result)
-    }
 
     async register({request, response}) {
 
-
         const userController = new UserController
-        const verify_code =  await this.createVerifyCode();
-        const User_code  =  await this.createUserCode()
+        const cacVerifyController = new CacVerifyController
 
-        if(this.cacCodeBreakOut === 3 || this.tinCodeBreakOut === 3){
-            this.cacCodeBreakOut = 0
-            this.tinCodeBreakOut  = 0
-            return {success: false, message: 'An error occured, this might be a network issue or error generating a secure details for User, please try again', status_code: 501}
-        }
+       try {
 
-        Object.assign(UserData, {password: await Hash.make(password), verify_code, User_code})
+            const inapp_cac_url_token  =  await this.cacPermitCode();
+            const inapp_tin_url_token =  await this.tinPermitCode()
 
-        let res = await UserController.store(UserData, password, verify_code) //Transfer to User Controller
-        switch(res.status) {
-            case 201:
-                return {success: res.success, message: res.message, data: res.User, status_code: 201}
-            case 501: 
-                return {success: res.error, message: res.message, hint: res.hint, status_code: 501}
-        }
+            console.log(inapp_cac_url_token, inapp_tin_url_token)
+
+            const {email, cac_number, tin_number, password} = request.post();
+
+
+            //Verify CAC token
+            const cacChecking = await cacVerifyController.regVerify(cac_number)
+
+            console.log(cacChecking)
+
+
+            if(cacChecking.status) {
+                return {
+                    status: false, 
+                    message: `Please your CAC Identification Number is not valid!`,
+                    status_code: 400
+                }
+            } 
+            
+
+            if(this.cacCodeBreakOut === 3 || this.tinCodeBreakOut === 3){
+
+                this.cacCodeBreakOut = 0
+                this.tinCodeBreakOut = 0
+
+                return {
+                    status: false, 
+                    message: 'An error occured, this might be a network issue or error generating a secure details for User, please try again', 
+                    status_code: 501
+                }
+            }
+            
+
+            Object.assign(request.post(), {
+                password: await Hash.make(password), 
+                inapp_cac_url_token,
+                inapp_tin_url_token
+            });
+
+
+
+            // let user = await userController.store(request.post()) //Transfer to User Controller
+
+            return response.status(200).json({status: true, message: 'Registration Succesfull'})
+       } catch (error) {
+            return response.status(501).json({
+                status: false, 
+                message: 'An error occured while registring your business account, if issues persit please contact support.', 
+                hint: error.message
+            })
+       }
     }
 
     async login({request, auth, response}) {
@@ -47,48 +82,47 @@ class AuthController {
 
         try {
             if(await auth.authenticator('UserJwt').attempt(email, password)) {
-                const User = await User.findBy('email', email)
-                const token = await auth.generate(User)
+                const user = await User.query().where('email', email).where('password', password).first()
+
+                const token = await auth.generate(user)
+
                 const photo = {
                     photoUrl: Env.get('CLOUDINARY_IMAGE_URL'),
                     image: User.photo
                 }
-                Object.assign(User, {photo, token})
 
-                const currentDate = dayjs().format(); 
-                const accountVerifyDate = dayjs(User.account_verified_at).format();
-    
-                if(accountVerifyDate < currentDate){
-                    const mailResponse = await this.sendCode(User)
-                    return response.status(mailResponse.status_code).json(mailResponse)
-                }
+                Object.assign(user, {photo, token})
 
-                return response.status(200).json({success:true, User})
+                return response.status(200).json({status:true, user})
             }
         } catch (error) {
-            return response.status(501).json({error: false, message: 'Invalid Details, please check if email or password are correct, if issues persit please contact support.', hint: error.message})
+            return response.status(501).json({
+                status: false, 
+                message: 'Invalid Details, please check if email or password are correct, if issues persit please contact support.', 
+                hint: error.message
+            })
         }
     }
 
     async cacPermitCode () {
-        const cacPermitCode = `cac-${stringGenerator(20)}`
-        const checkIfExist = await User.findBy('cac_toke', cacPermitCode)
+        const cacPermitCode = `cac-${await this.stringGenerator(20)}`
+        const checkIfExist = await User.findBy('inapp_cac_url_token', cacPermitCode)
         if(checkIfExist) {
             if(this.cacCodeBreakOut < 3) {
                 this.cacCodeBreakOut++;
-                await this.createUserCode();
+                await this.cacPermitCode();
             }
         }
         return cacPermitCode;
     }
 
     async  tinPermitCode () {
-        const tinPermitCode = `tin-${stringGenerator(20)}`
-        const checkIfExist = await User.findBy('verify_code', tinPermitCode)
+        const tinPermitCode = `tin-${await this.stringGenerator(20)}`
+        const checkIfExist = await User.findBy('inapp_tin_url_token', tinPermitCode)
         if(checkIfExist) {
             if(this.tinCodeBreakOut < 3) {
                 this.tinCodeBreakOut++;
-                await this.createVerifyCode(); 
+                await this.tinPermitCode(); 
             }
         }
         return tinPermitCode;

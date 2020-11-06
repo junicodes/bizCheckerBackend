@@ -18,5 +18,5 @@ const Route = use('Route')
 
 Route.on('/').render('welcome')
 
-Route.get('auth/sign-up', 'AuthenticateController.signUp').formats(['json']); //Twitter Generate Auth Url
+Route.post('auth/sign-up', 'AuthenticateController.register').validator('Register').formats(['json']); //Twitter Generate Auth Url
 
