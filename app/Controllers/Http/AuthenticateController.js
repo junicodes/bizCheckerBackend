@@ -56,9 +56,8 @@ class AuthController {
                 }
             }
             
-
+            console.log(password)
             Object.assign(request.post(), {
-                password: await Hash.make(password), 
                 inapp_cac_url_token,
                 inapp_tin_url_token
             });
@@ -78,12 +77,17 @@ class AuthController {
     }
 
     async login({request, auth, response}) {
-        let {email, password} = request.post();
+        console.log(auth)
+        let {email, password} = request.all();
+
+        console.log(email, password)
 
         try {
-            if(await auth.authenticator('jwt').attempt(email, password)) {
+                await auth.attempt(email, password)
+
+                const user = await User.findBy('email', email)
                 
-                const user = await User.query().where('email', email).where('password', password).first()
+                console.log(user)
 
                 const token = await auth.generate(user)
 
@@ -95,7 +99,6 @@ class AuthController {
                 Object.assign(user, {photo, token})
 
                 return response.status(200).json({status:true, user})
-            }
         } catch (error) {
             return response.status(501).json({
                 status: false, 

@@ -16,11 +16,11 @@ module.exports = {
   | Available Serializers - lucid, database
   |
   */
-  authenticator: 'session',
+  authenticator: 'jwt',
 
   /*
   |--------------------------------------------------------------------------
-  | Session
+  | Session   
   |--------------------------------------------------------------------------
   |
   | Session authenticator makes use of sessions to authenticate a user.
