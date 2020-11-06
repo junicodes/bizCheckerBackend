@@ -20,3 +20,5 @@ Route.on('/').render('welcome')
 
 Route.post('auth/sign-up', 'AuthenticateController.register').validator('Register').formats(['json']); //Twitter Generate Auth Url
 
+Route.post('auth/login', 'AuthenticateController.login').validator('Login').formats(['json']); //Twitter Generate Auth Url
+
