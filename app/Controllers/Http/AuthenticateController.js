@@ -65,9 +65,9 @@ class AuthController {
 
 
 
-            // let user = await userController.store(request.post()) //Transfer to User Controller
+            let user = await userController.store(request.post()) //Transfer to User Controller
 
-            return response.status(200).json({status: true, message: 'Registration Succesfull'})
+            return response.status(200).json({status: true, message: 'Registration Succesfull', user})
        } catch (error) {
             return response.status(501).json({
                 status: false, 
