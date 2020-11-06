@@ -10,7 +10,7 @@ class UserSchema extends Schema {
       table.string('email', 254).notNullable().unique()
       table.string('password', 60).notNullable()
       table.string('business_owner').notNullable()
-      table.string('business_name').notNullable()
+      table.string('business_name').nullable()
       table.string('business_email').nullable()
       table.string('business_address').nullable()
       table.string('business_dob').nullable()

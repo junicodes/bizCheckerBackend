@@ -81,7 +81,7 @@ class AuthController {
         let {email, password} = request.post();
 
         try {
-            if(await auth.authenticator('auth:jwt').attempt(email, password)) {
+            if(await auth.authenticator('jwt').attempt(email, password)) {
                 
                 const user = await User.query().where('email', email).where('password', password).first()
 
