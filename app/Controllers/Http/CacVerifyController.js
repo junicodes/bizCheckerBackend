@@ -1,6 +1,6 @@
 'use strict'
 const axios = use('axios')
-
+const User = use('App/Models/User');
 
 class CacVerifyController {
 
@@ -17,23 +17,30 @@ class CacVerifyController {
         return {status: false, message: 'Not Verified', verifyStatus, status_code: 400}
     }
 
-    async routeVerify({request, auth, prams: {cac}, response}) {
+    async routeVerify({request, params: {cacPermitCode}, response}) {
 
-        const verifyStatus = await this.verify(cac)
+        const findUser = await User.query().where('inapp_cac_url_token', cacPermitCode).first()
+
+        console.log(findUser)
+
+        console.log(findUser.cac_number)
+
+
+        const verifyStatus = await this.verify(findUser.cac_number)
 
         if(verifyStatus.status) {
             
             return response.status(200).json({status: true, verifyStatus, message: 'verified' })
          }
      
-         return response.status(401).json({status: true, message: 'Not Verified' })
+         return response.status(401).json({status: true, verifyStatus, message: 'Not Verified' })
     }
 
-    async verify(cac) {
+    async verify(cacNumber) {
 
         try {
             const data = {
-                rcNumber: '31498',
+                rcNumber: cacNumber ? cacNumber : '31498',
                 companyName: 'Balinga Enterprises'
             };
     

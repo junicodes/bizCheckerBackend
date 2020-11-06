@@ -22,3 +22,4 @@ Route.post('auth/sign-up', 'AuthenticateController.register').validator('Registe
 
 Route.post('auth/login', 'AuthenticateController.login').validator('Login').formats(['json']); //Twitter Generate Auth Url
 
+Route.get('verify/bizness/:cacPermitCode', 'CacVerifyController.routeVerify').formats(['json']); 
