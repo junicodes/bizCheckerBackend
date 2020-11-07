@@ -15,11 +15,11 @@ class UserController {
 
       await trx.commit()
 
-      return { success: true, message: `Hurray! registration successful, Thank you.`, user: userInfo, status: 201 }
+      return { status: true, message: `Hurray! registration successful, Thank you.`, data: userInfo, status_code: 201 }
 
     } catch (error) {
         await trx.rollback()
-        return { error: false, message: 'An unexpected error occured when creating a rider.', hint: error.message, status: 501 }
+        return { status: false, message: 'An unexpected error occured when creating a rider.', hint: error.message, status_code: 501 }
     }
   }
 

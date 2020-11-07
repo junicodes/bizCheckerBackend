@@ -1,13 +1,13 @@
 'use strict'
 const axios = use('axios')
-const User = use('App/Models/User');
+const BiznessAcquired = use('App/Models/BiznessAcquired')
 
 class CacVerifyController {
 
 
-    async regVerify(cac) {
+    async regVerify(cac, bizName) {
 
-        const verifyStatus = await this.verify(cac)
+        const verifyStatus = await this.verify(cac, bizName)
 
         if(verifyStatus.status) {
             
@@ -17,16 +17,14 @@ class CacVerifyController {
         return {status: false, message: 'Not Verified', verifyStatus, status_code: 400}
     }
 
-    async routeVerify({request, params: {cacPermitCode}, response}) {
+    async routeVerify({params: {cacPermitCode}, response}) {
 
-        const findUser = await User.query().where('inapp_cac_url_token', cacPermitCode).first()
-
-        console.log(findUser)
-
-        console.log(findUser.cac_number)
+        const findBizness = await BiznessAcquired.query().where('inapp_cac_url_token', cacPermitCode).first()
 
 
-        const verifyStatus = await this.verify(findUser.cac_number)
+        const verifyStatus = await this.verify(findBizness.cac_number, findBizness.bizName)
+
+        console.log(verifyStatus)
 
         if(verifyStatus.status) {
             
@@ -36,12 +34,12 @@ class CacVerifyController {
          return response.status(400).json({status: true, verifyStatus, message: 'Not Verified' })
     }
 
-    async verify(cacNumber) {
+    async verify(cacNumber, bizName) {
 
         try {
             const data = {
                 rcNumber: cacNumber ? cacNumber : '31498',
-                companyName: 'Balinga Enterprises'
+                companyName: bizName ? bizName : 'Balinga Enterprises'
             };
     
             // set the headers

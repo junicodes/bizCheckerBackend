@@ -1,7 +1,9 @@
 'use strict'
 
 const User = use('App/Models/User');
+const BiznessAcquired = use('App/Models/BiznessAcquired')
 const UserController = use('App/Controllers/Http/UserController')
+const BiznessAcquiredController = use('App/Controllers/Http/BiznessAcquiredController')
 const CacVerifyController = use('App/Controllers/Http/CacVerifyController')
 const dayjs = use('dayjs')
 const Hash = use('Hash')
@@ -18,6 +20,7 @@ class AuthController {
 
         const userController = new UserController
         const cacVerifyController = new CacVerifyController
+        const biznessAcquiredController = new BiznessAcquiredController
 
        try {
 
@@ -26,14 +29,13 @@ class AuthController {
 
             console.log(inapp_cac_url_token, inapp_tin_url_token)
 
-            const {email, cac_number, tin_number, password} = request.post();
+            const {email, cac_number, bizness_name, bizness_owner, tin_number, tin_transaction_ref, password} = request.post();
 
 
             //Verify CAC token
-            const cacChecking = await cacVerifyController.regVerify(cac_number)
+            const cacChecking = await cacVerifyController.regVerify(cac_number, bizness_name)
 
             console.log(cacChecking)
-
 
             if(cacChecking.status) {
                 return {
@@ -55,18 +57,45 @@ class AuthController {
                     status_code: 501
                 }
             }
-            
-            console.log(password)
-            Object.assign(request.post(), {
+
+            let user = await userController.store({email, password, bizness_owner}) //Transfer to User Controller
+
+            //Validate this insert
+            if(!user.status){
+                return {
+                    status: false, 
+                    message: 'An error occured, this might be a network issue or and unexpected issue occured, please try again', 
+                    status_code: 501
+                }
+            }
+
+
+            const bizData = {
+                user_id: user.id,
+                bizness_name,
+                address: cacChecking.businessAddress,
+                date_issued: cacChecking.dateOfIncorporation,
+                cac_number,
+                tin_number,
+                tin_transaction_ref,
                 inapp_cac_url_token,
                 inapp_tin_url_token
-            });
+            }
+
+            let bizNameStore = await biznessAcquiredController.regInsert(bizData)
+
+            if(!bizNameStore.status){
+                return {
+                    status: false, 
+                    message: 'An error occured, this might be a network issue or and unexpected issue occured, please try again', 
+                    status_code: 501
+                }
+            }
+
+            //Validate this insert
+            return response.status(200).json({status: true, message: 'Registration Succesfull', user: user.data, bizName: bizNameStore.bizData})
 
 
-
-            let user = await userController.store(request.post()) //Transfer to User Controller
-
-            return response.status(200).json({status: true, message: 'Registration Succesfull', user})
        } catch (error) {
             return response.status(501).json({
                 status: false, 
@@ -110,7 +139,7 @@ class AuthController {
 
     async cacPermitCode () {
         const cacPermitCode = `cac-${await this.stringGenerator(20)}`
-        const checkIfExist = await User.findBy('inapp_cac_url_token', cacPermitCode)
+        const checkIfExist = await BiznessAcquired.findBy('inapp_cac_url_token', cacPermitCode)
         if(checkIfExist) {
             if(this.cacCodeBreakOut < 3) {
                 this.cacCodeBreakOut++;
@@ -122,7 +151,7 @@ class AuthController {
 
     async  tinPermitCode () {
         const tinPermitCode = `tin-${await this.stringGenerator(20)}`
-        const checkIfExist = await User.findBy('inapp_tin_url_token', tinPermitCode)
+        const checkIfExist = await BiznessAcquired.findBy('inapp_tin_url_token', tinPermitCode)
         if(checkIfExist) {
             if(this.tinCodeBreakOut < 3) {
                 this.tinCodeBreakOut++;
