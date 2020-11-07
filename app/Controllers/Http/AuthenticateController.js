@@ -69,9 +69,8 @@ class AuthController {
                 }
             }
 
-
             const bizData = {
-                user_id: user.id,
+                user_id: user.data.id,
                 bizness_name,
                 address: cacChecking.businessAddress,
                 date_issued: cacChecking.dateOfIncorporation,
